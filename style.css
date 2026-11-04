@@ -3075,3 +3075,103 @@ audio {
   color: var(--muted, #aab1a8);
   line-height: 1.65;
 }
+
+/* Glossy polish for the existing dark green and lime palette. */
+.app-shell.theme-dark .sidebar {
+  background: linear-gradient(155deg, #121b14 0%, #0e1510 54%, #0a100c 100%);
+  box-shadow: inset -1px 0 rgba(210, 245, 181, 0.08);
+}
+.theme-dark .topbar {
+  background: linear-gradient(180deg, rgba(26, 40, 28, 0.94), rgba(11, 17, 13, 0.94));
+  box-shadow: inset 0 1px rgba(227, 248, 211, 0.1), 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+.theme-dark .search-box {
+  background: linear-gradient(155deg, #202d22, #131b15 72%);
+  box-shadow: inset 0 1px rgba(228, 247, 211, 0.1), 0 5px 14px rgba(0, 0, 0, 0.18);
+}
+.theme-dark .nav-item.active {
+  background: linear-gradient(145deg, #30482b, #1a2a19 82%);
+  box-shadow: inset 0 1px rgba(229, 255, 192, 0.18), 0 5px 14px rgba(0, 0, 0, 0.2);
+}
+.theme-dark .welcome-panel {
+  background:
+    linear-gradient(118deg, rgba(245, 255, 220, 0.13), transparent 31%, transparent 71%, rgba(210, 255, 179, 0.08)),
+    radial-gradient(ellipse at 82% 0%, rgba(183, 231, 132, 0.25), transparent 46%),
+    linear-gradient(112deg, #17251a 0%, #244329 54%, #356344 100%);
+  border: 1px solid rgba(214, 245, 180, 0.2);
+  box-shadow: inset 0 1px rgba(247, 255, 230, 0.2), 0 18px 42px rgba(0, 0, 0, 0.38);
+}
+.theme-dark .btn-lime,
+.theme-dark .featured-track-play {
+  background: linear-gradient(155deg, #e3ff9a 0%, #cef46b 50%, #a8ce4b 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 244, 0.62), 0 5px 16px rgba(157, 204, 76, 0.2);
+}
+.theme-dark .featured-track,
+.theme-dark .profile-banner,
+.theme-dark .profile-form,
+.theme-dark .settings-card,
+.theme-dark .jam-card,
+.theme-dark .people-card,
+.theme-dark .queue-section,
+.theme-dark .playlist-card,
+.theme-dark .empty-state {
+  box-shadow: inset 0 1px rgba(236, 255, 226, 0.1), 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+.theme-dark .featured-track {
+  background:
+    linear-gradient(125deg, rgba(248, 255, 236, 0.1), transparent 38%),
+    radial-gradient(ellipse at 88% 10%, #78a65324, transparent 43%),
+    linear-gradient(110deg, #1b291d, #121a14 74%);
+}
+.theme-dark .jam-card,
+.theme-dark .people-card,
+.theme-dark .queue-section {
+  background-image: linear-gradient(145deg, rgba(242, 255, 230, 0.07), transparent 48%);
+}
+.theme-dark .profile-banner {
+  background:
+    linear-gradient(130deg, rgba(245, 255, 230, 0.12), transparent 48%),
+    linear-gradient(150deg, #1a271c, #121a14 72%);
+}
+.theme-dark .profile-form,
+.theme-dark .settings-card {
+  background:
+    linear-gradient(145deg, rgba(242, 255, 230, 0.07), transparent 48%),
+    linear-gradient(150deg, #1a271c, #121a14 72%);
+}
+.theme-dark .jam-card.featured {
+  background:
+    linear-gradient(130deg, rgba(239, 255, 220, 0.13), transparent 46%),
+    linear-gradient(145deg, #29432b, #121a14 85%);
+  box-shadow: inset 0 1px rgba(239, 255, 222, 0.18), 0 14px 32px rgba(0, 0, 0, 0.25);
+}
+.theme-dark .track-row:hover,
+.theme-dark .playlist-card:hover {
+  background-image: linear-gradient(110deg, rgba(239, 255, 222, 0.08), rgba(206, 244, 107, 0.025));
+}
+.theme-dark .player {
+  background: linear-gradient(180deg, rgba(25, 38, 27, 0.98), rgba(10, 16, 12, 0.98));
+  box-shadow: inset 0 1px rgba(237, 255, 221, 0.14), 0 -10px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(18px) saturate(130%);
+}
+.theme-dark .player-buttons .play-toggle {
+  background: linear-gradient(145deg, #e5ff9d, #cef46b 56%, #a8ce4b);
+  box-shadow: inset 0 1px rgba(255, 255, 240, 0.68), 0 4px 14px rgba(179, 224, 90, 0.28);
+}
+.theme-dark .modal,
+.theme-dark .queue-drawer {
+  background: linear-gradient(145deg, #1d2a20, #111a14 66%, #0e1510);
+  box-shadow: inset 0 1px rgba(237, 255, 221, 0.14), 0 22px 60px rgba(0, 0, 0, 0.5);
+}
+.theme-dark :is(.btn, .nav-item, .player-buttons button, .search-box, .jam-card, .playlist-card) {
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.theme-dark :is(button, input, a):focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-dark :is(.btn, .nav-item, .player-buttons button, .search-box, .jam-card, .playlist-card) {
+    transition: none;
+  }
+}
