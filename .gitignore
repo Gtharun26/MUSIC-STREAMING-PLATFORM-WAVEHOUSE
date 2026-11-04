@@ -1,0 +1,10 @@
+# Ignore installed packages, generated builds, and locally uploaded audio
+node_modules/
+dist/
+data/
+.vite-cache/
+.vite-cache-v2/
+.vite-cache-v3/
+.env
+.env.*
+!.env.example

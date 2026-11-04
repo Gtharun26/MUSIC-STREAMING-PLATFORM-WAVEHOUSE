@@ -1,0 +1,41 @@
+[
+  {
+    "id": "sample-quiet-hours",
+    "title": "Quiet Hours",
+    "artist": "Keynata Commons",
+    "genre": "Classical",
+    "duration": "2:17",
+    "plays": 0,
+    "audioUrl": "/starter-music/classical_piano_5702.mp3",
+    "coverUrl": "/starter-music/quiet-hours.svg",
+    "isSample": true,
+    "license": "CC0 1.0",
+    "sourceUrl": "https://github.com/carf-coder/keynata-commons"
+  },
+  {
+    "id": "sample-afterglow",
+    "title": "Afterglow",
+    "artist": "Keynata Commons",
+    "genre": "J-Pop",
+    "duration": "2:36",
+    "plays": 0,
+    "audioUrl": "/starter-music/jpop_3piece_11001.mp3",
+    "coverUrl": "/starter-music/afterglow.svg",
+    "isSample": true,
+    "license": "CC0 1.0",
+    "sourceUrl": "https://github.com/carf-coder/keynata-commons"
+  },
+  {
+    "id": "sample-open-road",
+    "title": "Open Road",
+    "artist": "Keynata Commons",
+    "genre": "Rock",
+    "duration": "2:05",
+    "plays": 0,
+    "audioUrl": "/starter-music/rock_standard_10001.mp3",
+    "coverUrl": "/starter-music/open-road.svg",
+    "isSample": true,
+    "license": "CC0 1.0",
+    "sourceUrl": "https://github.com/carf-coder/keynata-commons"
+  }
+]

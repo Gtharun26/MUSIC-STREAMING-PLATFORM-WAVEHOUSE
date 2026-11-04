@@ -1,0 +1,10 @@
+Starter demo tracks: Keynata Commons, generated music, CC0 1.0 Universal.
+Source: https://github.com/carf-coder/keynata-commons
+License: https://creativecommons.org/publicdomain/zero/1.0/
+
+Tracks bundled locally:
+- Quiet Hours (Classical Piano No. 5702)
+- Afterglow (J-Pop Three-Piece No. 11001)
+- Open Road (Rock Standard No. 10001)
+
+These are original generated instrumental demo tracks, not Spotify catalog recordings.
