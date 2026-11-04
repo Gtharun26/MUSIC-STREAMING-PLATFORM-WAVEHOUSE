@@ -195,53 +195,6 @@ audio {
 .sidebar-spacer {
   flex: 1;
 }
-.sidebar-promo {
-  background: #243021;
-  border: 1px solid #35432f;
-  border-radius: 12px;
-  padding: 16px;
-  margin: 0 0 17px;
-  position: relative;
-  overflow: hidden;
-  flex: 0 0 auto;
-}
-.promo-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.promo-orb {
-  width: 31px;
-  height: 31px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--lime);
-  color: #23301e;
-  font-size: 17px;
-  flex: 0 0 31px;
-  margin: 0;
-}
-.sidebar-promo strong {
-  display: block;
-  font-size: 12px;
-  line-height: 1.35;
-}
-.sidebar-promo p {
-  color: #a7b09f;
-  font-size: 10px;
-  line-height: 1.4;
-  margin: 10px 0 8px;
-}
-.sidebar-promo button {
-  display: block;
-  border: 0;
-  background: none;
-  color: var(--lime);
-  padding: 0;
-  font-size: 10px;
-  font-weight: 700;
-}
 .account-strip {
   border-top: 1px solid #2a312e;
   padding: 15px 2px 1px;
@@ -1733,7 +1686,6 @@ audio {
   .sidebar .side-label,
   .sidebar-rule,
   .sidebar-spacer,
-  .sidebar-promo,
   .account-strip {
     display: none;
   }
@@ -2531,16 +2483,6 @@ audio {
 .theme-light .account-strip {
   border-color: #d1dbd1;
 }
-.theme-light .sidebar-promo {
-  background: #e1ead8;
-  border-color: #cbd9bf;
-}
-.theme-light .sidebar-promo p {
-  color: #63715e;
-}
-.theme-light .sidebar-promo button {
-  color: #506c29;
-}
 .theme-light .account-meta b {
   color: #29352d;
 }
@@ -2770,16 +2712,6 @@ audio {
 .theme-dark .sidebar-rule,
 .theme-dark .account-strip {
   border-color: #253228;
-}
-.theme-dark .sidebar-promo {
-  background: #172419;
-  border-color: #33452f;
-}
-.theme-dark .sidebar-promo p {
-  color: #b1bcae;
-}
-.theme-dark .sidebar-promo button {
-  color: var(--lime);
 }
 .theme-dark .account-meta small {
   color: #99a795;

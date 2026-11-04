@@ -909,14 +909,6 @@ function App() {
           <i>♡</i>Liked tracks <small>{myLikes.length}</small>
         </button>
         <div className="sidebar-spacer" />
-        <div className="sidebar-promo">
-          <div className="promo-heading">
-            <span className="promo-orb">◉</span>
-            <strong>Music is better together.</strong>
-          </div>
-          <p>Start a room and listen in sync.</p>
-          <button onClick={() => setPage("jam")}>Explore Jams →</button>
-        </div>
         <div className="account-strip">
           <Avatar user={user} className="avatar" />
           <span className="account-meta">
