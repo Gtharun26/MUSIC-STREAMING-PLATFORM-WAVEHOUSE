@@ -125,10 +125,10 @@ audio {
   color: var(--lime);
 }
 .brand > span:last-child {
-  font-family: "Segoe Script", "Brush Script MT", "Lucida Handwriting", cursive;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.5px;
+  font-family: "Iowan Old Style", "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
   line-height: 1;
 }
 .side-label,
