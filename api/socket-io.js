@@ -153,6 +153,7 @@ io.on("connection", (socket) => {
   socket.on("room:leave", ({ code } = {}) => leaveRoom(socket, code, true));
 
   socket.on("room:queue:add", async ({ code, trackId } = {}, callback) => {
+    let acknowledged = false;
     try {
       code = String(code || "").toUpperCase();
       const tracks = await getCatalog();
@@ -164,14 +165,17 @@ io.on("connection", (socket) => {
         return current;
       });
       if (!room) throw new Error("Room code not found.");
-      await broadcast(code);
       ack(callback, { ok: true });
+      acknowledged = true;
+      await broadcast(code);
     } catch (error) {
-      ack(callback, { ok: false, error: error.message });
+      if (acknowledged) console.error("Jam queue broadcast failed:", error.message);
+      else ack(callback, { ok: false, error: error.message });
     }
   });
 
   socket.on("room:queue:remove", async ({ code, index } = {}, callback) => {
+    let acknowledged = false;
     try {
       code = String(code || "").toUpperCase();
       const room = await mutateRoom(code, (current) => {
@@ -182,14 +186,17 @@ io.on("connection", (socket) => {
         return current;
       });
       if (!room) throw new Error("Room code not found.");
-      await broadcast(code);
       ack(callback, { ok: true });
+      acknowledged = true;
+      await broadcast(code);
     } catch (error) {
-      ack(callback, { ok: false, error: error.message });
+      if (acknowledged) console.error("Jam queue broadcast failed:", error.message);
+      else ack(callback, { ok: false, error: error.message });
     }
   });
 
   socket.on("room:control", async ({ code, action, trackId, position } = {}, callback) => {
+    let acknowledged = false;
     try {
       code = String(code || "").toUpperCase();
       const tracks = await getCatalog();
@@ -221,10 +228,12 @@ io.on("connection", (socket) => {
         return current;
       });
       if (!room) throw new Error("Room code not found.");
-      await broadcast(code);
       ack(callback, { ok: true });
+      acknowledged = true;
+      await broadcast(code);
     } catch (error) {
-      ack(callback, { ok: false, error: error.message });
+      if (acknowledged) console.error("Jam control broadcast failed:", error.message);
+      else ack(callback, { ok: false, error: error.message });
     }
   });
 
