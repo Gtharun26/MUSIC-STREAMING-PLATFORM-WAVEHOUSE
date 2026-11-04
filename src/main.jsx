@@ -1061,6 +1061,8 @@ function App() {
               />
               <TrackTable
                 tracks={tracks.filter((t) => myLikes.includes(t.id))}
+                emptyTitle="No liked tracks yet"
+                emptyText="Like a song from your library or Discover to find it here."
                 likes={myLikes}
                 onPlay={play}
                 onLike={like}
@@ -1093,6 +1095,8 @@ function App() {
               </div>
               <TrackTable
                 tracks={filtered}
+                emptyTitle="No tracks in this genre yet"
+                emptyText="Choose another genre to explore more of your library."
                 likes={myLikes}
                 onPlay={play}
                 onLike={like}
@@ -1789,12 +1793,14 @@ function TrackTable({
   onDelete,
   onAddList,
   lists,
+  emptyTitle = "Nothing in the library yet",
+  emptyText = "An administrator can upload MP3 tracks from Admin studio.",
 }) {
   if (!tracks.length)
     return (
       <Empty
-        title="Nothing in the library yet"
-        text="An administrator can upload MP3 tracks from Admin studio."
+        title={emptyTitle}
+        text={emptyText}
       />
     );
   return (
