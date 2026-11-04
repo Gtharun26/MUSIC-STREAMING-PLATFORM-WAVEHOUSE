@@ -235,7 +235,9 @@ function App() {
     const s = io({
       autoConnect: false,
       path: import.meta.env.PROD ? "/api/socket-io" : "/socket.io",
-      ...(import.meta.env.PROD ? { transports: ["websocket"] } : {}),
+      ...(import.meta.env.PROD
+        ? { transports: ["websocket"], addTrailingSlash: false }
+        : {}),
     });
     sock.current = s;
     s.on("room:state", setJam);

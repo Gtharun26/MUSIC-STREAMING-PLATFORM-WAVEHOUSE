@@ -12,6 +12,7 @@ const io = new Server(server, {
   // Vercel maps this function file to /api/socket-io. Keep Socket.IO on the
   // function route itself so the upgrade request reaches this serverless function.
   path: "/api/socket-io",
+  addTrailingSlash: false,
   transports: ["websocket"],
   cors: { origin: true, credentials: false },
 });
