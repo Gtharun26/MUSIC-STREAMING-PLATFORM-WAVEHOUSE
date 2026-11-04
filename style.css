@@ -126,9 +126,9 @@ audio {
 }
 .brand > span:last-child {
   font-family: "Syne", sans-serif;
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 800;
-  letter-spacing: -1px;
+  letter-spacing: -0.8px;
   line-height: 1;
 }
 .side-label,
