@@ -90,6 +90,14 @@ const normalizePreferences = (saved = {}) => ({
 });
 const time = (n) =>
   `${Math.floor((n || 0) / 60)}:${String(Math.floor((n || 0) % 60)).padStart(2, "0")}`;
+const shuffled = (items) => {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+};
 const initials = (n) =>
   (n || "?")
     .split(/\s+/)
@@ -133,10 +141,12 @@ function App() {
     [authError, setAuthError] = useState(""),
     [page, setPage] = useState("library"),
     [tracks, setTracks] = useState([]),
+    [catalogLoading, setCatalogLoading] = useState(true),
     [features, setFeatures] = useState({ uploads: false, jams: false, auth: false, adminConfigured: false }),
     [featuresChecked, setFeaturesChecked] = useState(false),
     [likes, setLikes] = useState(db.likes || {}),
     [playlists, setPlaylists] = useState(db.playlists || {}),
+    [recentlyPlayed, setRecentlyPlayed] = useState(db.recentlyPlayed || {}),
     [preferences, setPreferences] = useState(() => ({
       ...normalizePreferences(db.preferences?.[db.session?.id]),
     })),
@@ -147,22 +157,27 @@ function App() {
     [volume, setVolume] = useState(0.8),
     [search, setSearch] = useState(""),
     [genre, setGenre] = useState("All"),
+    [discoverSort, setDiscoverSort] = useState("popular"),
     [toast, setToast] = useState(""),
     [upload, setUpload] = useState(false),
     [busy, setBusy] = useState(false),
     [jam, setJam] = useState(null),
     [code, setCode] = useState(""),
     [roomBusy, setRoomBusy] = useState(false),
-    [queue, setQueue] = useState([]),
+    [queue, setQueue] = useState(db.queues?.[db.session?.id] || []),
     [queueOpen, setQueueOpen] = useState(false),
+    [shuffle, setShuffle] = useState(false),
+    [repeatMode, setRepeatMode] = useState("off"),
     [newList, setNewList] = useState(""),
-    [selected, setSelected] = useState(null);
+    [selected, setSelected] = useState(null),
+    [editingTrack, setEditingTrack] = useState(null);
   const audio = useRef(null),
     sock = useRef(null),
     userRef = useRef(user),
     jamRef = useRef(jam),
     timer = useRef(),
     seeking = useRef(false),
+    lastResumeWrite = useRef(0),
     isAdmin = user?.role === "admin",
     myLikes = likes[user?.id] || [],
     myLists = playlists[user?.id] || [],
@@ -180,6 +195,7 @@ function App() {
     jamRef.current = jam;
   }, [user, jam]);
   const load = useCallback(async () => {
+    setCatalogLoading(true);
     try {
       const r = await fetch("/api/tracks");
       if (!r.ok) throw Error("Music server is unavailable.");
@@ -193,6 +209,7 @@ function App() {
       });
       setFeaturesChecked(true);
       setTracks(catalog);
+      setCatalogLoading(false);
       if (status.auth) {
         const session = await fetch("/api/auth").catch(() => null);
         if (!session?.ok) {
@@ -227,6 +244,8 @@ function App() {
       } catch {
         setTracks([]);
         note("The music catalog could not be loaded.");
+      } finally {
+        setCatalogLoading(false);
       }
     }
   }, [note]);
@@ -277,13 +296,29 @@ function App() {
         session: user,
         likes,
         playlists,
+        recentlyPlayed,
+        queues: { ...(saved.queues || {}), ...(user ? { [user.id]: queue } : {}) },
         preferences: nextPreferences,
       }),
     );
-  }, [users, user, likes, playlists, preferences]);
+  }, [users, user, likes, playlists, recentlyPlayed, queue, preferences]);
   useEffect(() => {
     if (audio.current) audio.current.volume = volume;
   }, [volume]);
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      const target = event.target;
+      if (event.key === "Escape" && editingTrack) { setEditingTrack(null); return; }
+      if (target instanceof HTMLElement && (target.isContentEditable || /INPUT|TEXTAREA|SELECT|BUTTON|A/.test(target.tagName))) return;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.code === "Space") { event.preventDefault(); toggle(); }
+      else if (event.key.toLowerCase() === "n") skip(1);
+      else if (event.key === "ArrowLeft" && audio.current) seek(Math.max(0, audio.current.currentTime - 5));
+      else if (event.key === "ArrowRight" && audio.current) seek(Math.min(duration || Infinity, audio.current.currentTime + 5));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [duration, playing, track, queue, shuffle, repeatMode, jam, host, editingTrack]);
   useEffect(() => {
     const a = audio.current;
     if (!a || !jam) return;
@@ -401,9 +436,22 @@ function App() {
     }
     setTrack(t);
     setPlaying(true);
-    setQueue((q) => (q.length ? q : tracks));
+    setRecentlyPlayed((current) => ({
+      ...current,
+      [user.id]: [
+        { id: t.id, playedAt: Date.now() },
+        ...(current[user.id] || []).filter((entry) => entry.id !== t.id),
+      ].slice(0, 50),
+    }));
+    setQueue((current) =>
+      current.length && current.some((entry) => entry.id === t.id)
+        ? current
+        : [t, ...(shuffle ? shuffled(tracks.filter((entry) => entry.id !== t.id)) : tracks.filter((entry) => entry.id !== t.id))],
+    );
     audio.current.src = t.audioUrl;
-    audio.current.currentTime = 0;
+    audio.current.dataset.trackId = t.id;
+    const savedResume = readDB().resume;
+    audio.current.currentTime = savedResume?.trackId === t.id ? savedResume.position : 0;
     audio.current.play().catch(() => {
       setPlaying(false);
       note("Could not play that MP3.");
@@ -436,7 +484,7 @@ function App() {
       setPlaying(false);
     } else audio.current.play().catch(() => note("Audio could not play."));
   };
-  const skip = (d) => {
+  const skip = (d, ended = false) => {
     if (jam) {
       if (host) control(d > 0 ? "next" : "previous");
       else note("Only the host controls playback.");
@@ -445,7 +493,45 @@ function App() {
     const q = queue.length ? queue : tracks;
     if (!q.length) return;
     const i = q.findIndex((x) => x.id === track?.id);
-    play(q[(i + d + q.length) % q.length]);
+    const nextIndex = i + d;
+    if (nextIndex < 0) return repeatMode === "all" ? play(q[q.length - 1]) : undefined;
+    if (nextIndex >= q.length) {
+      if (repeatMode === "all") return play(q[0]);
+      if (ended) {
+        audio.current.pause();
+        setPlaying(false);
+      }
+      return;
+    }
+    play(q[nextIndex]);
+  };
+  const addToQueue = (item, next = false) => {
+    setQueue((current) => {
+      const base = current.length ? [...current] : track ? tracks.filter((entry) => entry.id !== track.id) : [];
+      const existing = base.findIndex((entry) => entry.id === item.id);
+      if (existing >= 0) base.splice(existing, 1);
+      const currentIndex = base.findIndex((entry) => entry.id === track?.id);
+      base.splice(next ? Math.max(currentIndex + 1, 0) : base.length, 0, item);
+      return track && !base.some((entry) => entry.id === track.id) ? [track, ...base] : base;
+    });
+    note(next ? "Added to play next." : "Added to queue.");
+  };
+  const reorderQueue = (from, to) => setQueue((current) => {
+    if (to < 0 || to >= current.length) return current;
+    const next = [...current];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    return next;
+  });
+  const removeFromQueue = (index) => {
+    const removingCurrent = queue[index]?.id === track?.id;
+    const nextTrack = queue[index + 1] || queue[index - 1];
+    const next = queue.filter((_, i) => i !== index);
+    setQueue(next);
+    if (removingCurrent) {
+      if (nextTrack) play(nextTrack);
+      else { audio.current.pause(); setTrack(null); setPlaying(false); }
+    }
   };
   const addJam = async (t) => {
     if (!jam) return note("Create or join a Jam first.");
@@ -817,9 +903,32 @@ function App() {
   };
   const removeTrack = async (t) => {
     if (confirm(`Remove “${t.title}” and its MP3?`)) {
-      await fetch(`/api/tracks/${t.id}`, { method: "DELETE" });
-      load();
+      try {
+        const response = await fetch(`/api/tracks/${t.id}`, { method: "DELETE" });
+        if (!response.ok) throw Error("Track could not be removed. Check the music service and try again.");
+        setQueue((current) => current.filter((item) => item.id !== t.id));
+        if (track?.id === t.id) { audio.current.pause(); setTrack(null); setPlaying(false); }
+        await load();
+        note(`Removed “${t.title}”.`);
+      } catch (error) { note(error.message); }
     }
+  };
+  const saveTrack = async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch(`/api/tracks/${encodeURIComponent(editingTrack.id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: form.get("title"), artist: form.get("artist"), genre: form.get("genre") }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw Error(result.error || "Track details could not be saved.");
+      setTracks((current) => current.map((item) => item.id === result.id ? { ...item, ...result } : item));
+      if (track?.id === result.id) setTrack((current) => ({ ...current, ...result }));
+      setEditingTrack(null);
+      note("Track details saved.");
+    } catch (error) { note(error.message); }
   };
   const removeUser = async (id) => {
     if (!confirm("Remove this listener account? This cannot be undone.")) return;
@@ -841,6 +950,13 @@ function App() {
         ),
       [tracks, search, genre],
     ),
+    discovered = useMemo(() => {
+      const items = [...filtered];
+      if (discoverSort === "popular") items.sort((a, b) => (b.plays || 0) - (a.plays || 0));
+      if (discoverSort === "recent") items.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+      if (discoverSort === "title") items.sort((a, b) => a.title.localeCompare(b.title));
+      return items;
+    }, [filtered, discoverSort]),
     genres = useMemo(
       () => ["All", ...new Set(tracks.map((x) => x.genre))],
       [tracks],
@@ -861,6 +977,7 @@ function App() {
     ["library", "▤", "My Library"],
     ["profile", "♙", "Profile"],
     ["liked", "♡", "Liked tracks"],
+    ["recent", "◷", "Recently played"],
     ["discover", "⌕", "Discover"],
     ["jam", "◉", "Jam rooms"],
     ["playlists", "▧", "Playlists"],
@@ -878,11 +995,13 @@ function App() {
       <aside className="sidebar">
         <Brand onClick={() => setPage("library")} />
         <span className="side-label">YOUR SPACE</span>
-        <nav>
+        <nav aria-label="Main navigation">
           {nav.map(([id, ico, label]) => (
             <button
               key={id}
               className={`nav-item ${page === id ? "active" : ""}`}
+              title={label}
+              aria-current={page === id ? "page" : undefined}
               onClick={() => {
                 setPage(id);
                 setSelected(null);
@@ -894,20 +1013,6 @@ function App() {
             </button>
           ))}
         </nav>
-        <div className="sidebar-rule" />
-        <span className="side-label">QUICK ACCESS</span>
-        <button
-          className="nav-item"
-          onClick={() => {
-            setPage("library");
-            setSearch("");
-          }}
-        >
-          <i>◷</i>Recently added
-        </button>
-        <button className="nav-item" onClick={() => setPage("liked")}>
-          <i>♡</i>Liked tracks <small>{myLikes.length}</small>
-        </button>
         <div className="sidebar-spacer" />
         <div className="account-strip">
           <Avatar user={user} className="avatar" />
@@ -938,6 +1043,8 @@ function App() {
                         ? "YOUR PROFILE"
                         : page === "liked"
                           ? "LIKED TRACKS"
+                          : page === "recent"
+                            ? "RECENTLY PLAYED"
                           : "YOUR LIBRARY"}
           </div>
           <label className="search-box">
@@ -1000,14 +1107,14 @@ function App() {
                   01 <i>/</i> 04
                 </span>
               </section>
-              {filtered[0] && (
+              {!catalogLoading && filtered[0] && (
                 <FeaturedTrack track={filtered[0]} onPlay={play} />
               )}
               <div className="section-title">
                 <div>
                   <span className="eyebrow">PICK UP THE RHYTHM</span>
                   <h2>
-                    Your collection <small>{tracks.length} tracks</small>
+                    Your collection <small>{catalogLoading ? "Loading…" : `${tracks.length} tracks`}</small>
                   </h2>
                 </div>
                 {isAdmin && (
@@ -1020,7 +1127,7 @@ function App() {
                   )
                 )}
               </div>
-              <TrackTable
+              {catalogLoading ? <CatalogSkeleton /> : <TrackTable
                 tracks={filtered}
                 likes={myLikes}
                 onPlay={play}
@@ -1031,7 +1138,8 @@ function App() {
                 onDelete={removeTrack}
                 onAddList={addList}
                 lists={myLists}
-              />
+                onQueue={addToQueue}
+              />}
             </>
           )}
           {page === "profile" && (
@@ -1072,6 +1180,20 @@ function App() {
                 onDelete={removeTrack}
                 onAddList={addList}
                 lists={myLists}
+                onQueue={addToQueue}
+              />
+            </>
+          )}
+          {page === "recent" && (
+            <>
+              <Intro label="YOUR LISTENING HISTORY" title="Recently played" text="Pick up again from the tracks you have enjoyed lately." />
+              <TrackTable
+                tracks={(recentlyPlayed[user.id] || []).map((entry) => tracks.find((item) => item.id === entry.id)).filter(Boolean)}
+                emptyTitle="Your history starts here"
+                emptyText="Play a track and it will appear here for quick replay."
+                likes={myLikes} onPlay={play} onLike={like} onAdd={addJam}
+                inJam={Boolean(jam)} admin={isAdmin} onDelete={removeTrack}
+                onAddList={addList} lists={myLists} onQueue={addToQueue}
               />
             </>
           )}
@@ -1093,8 +1215,16 @@ function App() {
                   </button>
                 ))}
               </div>
+              <label className="discover-sort">
+                Sort by
+                <select value={discoverSort} onChange={(event) => setDiscoverSort(event.target.value)}>
+                  <option value="popular">Most played</option>
+                  <option value="recent">Recently added</option>
+                  <option value="title">Title A–Z</option>
+                </select>
+              </label>
               <TrackTable
-                tracks={filtered}
+                tracks={discovered}
                 emptyTitle="No tracks in this genre yet"
                 emptyText="Choose another genre to explore more of your library."
                 likes={myLikes}
@@ -1106,6 +1236,7 @@ function App() {
                 onDelete={removeTrack}
                 onAddList={addList}
                 lists={myLists}
+                onQueue={addToQueue}
               />
             </>
           )}
@@ -1165,6 +1296,7 @@ function App() {
                     onDelete={removeTrack}
                     onAddList={addList}
                     lists={myLists}
+                    onQueue={addToQueue}
                   />
                 </>
               ) : (
@@ -1195,8 +1327,10 @@ function App() {
               users={users}
               tracks={tracks}
               backendAvailable={features.uploads}
+              hostedAuth={features.auth}
               upload={() => setUpload(true)}
               removeTrack={removeTrack}
+              editTrack={setEditingTrack}
               removeUser={removeUser}
             />
           )}
@@ -1238,17 +1372,19 @@ function App() {
         </div>
         <div className="player-center">
           <div className="player-buttons">
-            <button onClick={() => skip(-1)} disabled={jam && !host}>
+            <button aria-label="Previous track" title="Previous track" onClick={() => skip(-1)} disabled={jam && !host}>
               |◀
             </button>
             <button
               className="play-toggle"
+              aria-label={playing ? "Pause" : "Play"}
+              title={playing ? "Pause (Space)" : "Play (Space)"}
               onClick={toggle}
               disabled={jam && !host}
             >
               {playing ? "Ⅱ" : "▶"}
             </button>
-            <button onClick={() => skip(1)} disabled={jam && !host}>
+            <button aria-label="Next track" title="Next track · N" onClick={() => skip(1)} disabled={jam && !host}>
               ▶|
             </button>
           </div>
@@ -1259,6 +1395,7 @@ function App() {
               min="0"
               max={duration || 1}
               step=".1"
+              aria-label="Seek through track"
               value={Math.min(position, duration || 1)}
               onChange={(e) => {
                 setPosition(+e.target.value);
@@ -1273,10 +1410,21 @@ function App() {
         </div>
         <div className="player-extra">
           <small>{jam && !host ? "HOST IS PLAYING" : "PLAYBACK"}</small>
-          <button onClick={() => setQueueOpen(!queueOpen)}>☷ Queue</button>
+          {!jam && <button className={shuffle ? "player-mode active" : "player-mode"} aria-label={shuffle ? "Turn shuffle off" : "Turn shuffle on"} title="Shuffle" onClick={() => {
+            setShuffle((enabled) => {
+              if (!enabled) setQueue((items) => {
+                const remaining = shuffled(items.filter((item) => item.id !== track?.id));
+                return track ? [track, ...remaining] : remaining;
+              });
+              return !enabled;
+            });
+          }}>⤨</button>}
+          {!jam && <button className={repeatMode !== "off" ? "player-mode active" : "player-mode"} aria-label={`Repeat ${repeatMode}`} title="Repeat mode" onClick={() => setRepeatMode((mode) => mode === "off" ? "all" : mode === "all" ? "one" : "off")}>↻{repeatMode === "one" && <sup>1</sup>}</button>}
+          <button aria-label="Toggle playback queue" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷ Queue</button>
           <span>◖</span>
           <input
             type="range"
+            aria-label="Volume"
             min="0"
             max="1"
             step=".01"
@@ -1286,34 +1434,33 @@ function App() {
         </div>
       </footer>
       {queueOpen && (
-        <aside className="queue-drawer">
+        <aside className="queue-drawer" role="dialog" aria-label="Playback queue">
           <div className="section-title">
-            <h2>Up next</h2>
-            <button className="icon-button" onClick={() => setQueueOpen(false)}>
+            <h2>Up next <small>{(jam?.queue || queue).length} tracks</small></h2>
+            <button className="icon-button" aria-label="Close queue" onClick={() => setQueueOpen(false)}>
               ×
             </button>
           </div>
           {(jam?.queue || queue).map((t, i) => (
-            <div className="queue-item" key={`${t.id}-${i}`}>
+            <div className={`queue-item ${track?.id === t.id ? "queue-current" : ""}`} key={`${t.id}-${i}`}>
               <Cover track={t} />
               <span>
                 <b>{t.title}</b>
-                <small>{t.artist}</small>
+                <small>{track?.id === t.id ? "Now playing" : t.artist}</small>
               </span>
-              <button
-                onClick={() =>
-                  jam
-                    ? emit("room:queue:remove", {
-                        code: jam.code,
-                        index: i,
-                      }).catch((e) => note(e.message))
-                    : play(t)
-                }
-              >
-                {jam ? "×" : "▶"}
-              </button>
+              {jam ? (
+                host && <button aria-label={`Remove ${t.title} from shared queue`} onClick={() => emit("room:queue:remove", { code: jam.code, index: i }).catch((e) => note(e.message))}>×</button>
+              ) : (
+                <div className="queue-actions">
+                  <button aria-label={`Play ${t.title}`} onClick={() => play(t)}>▶</button>
+                  <button aria-label={`Move ${t.title} up`} disabled={i === 0} onClick={() => reorderQueue(i, i - 1)}>↑</button>
+                  <button aria-label={`Move ${t.title} down`} disabled={i === queue.length - 1} onClick={() => reorderQueue(i, i + 1)}>↓</button>
+                  <button aria-label={`Remove ${t.title} from queue`} onClick={() => removeFromQueue(i)}>×</button>
+                </div>
+              )}
             </div>
           ))}
+          {!jam && <button className="text-link queue-clear" onClick={() => { setQueue(track ? [track] : []); note("Queue cleared."); }}>Clear upcoming tracks</button>}
         </aside>
       )}
       {upload && (
@@ -1325,17 +1472,41 @@ function App() {
           submitFolder={uploadFolder}
         />
       )}
-      {toast && <div className="toast">{toast}</div>}
+      {editingTrack && <EditTrackModal track={editingTrack} close={() => setEditingTrack(null)} save={saveTrack} />}
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
       <audio
         ref={audio}
         preload="metadata"
-        onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        onTimeUpdate={(e) => {
+          const currentTime = e.currentTarget.currentTime;
+          setPosition(currentTime);
+          if (!jam && user && currentTime > 0 && Date.now() - lastResumeWrite.current > 8000) {
+            lastResumeWrite.current = Date.now();
+            localStorage.setItem(DB, JSON.stringify({ ...readDB(), resume: { userId: user.id, trackId: track?.id, position: currentTime } }));
+          }
+        }}
+        onLoadedMetadata={(e) => {
+          setDuration(e.currentTarget.duration || 0);
+          const resume = readDB().resume;
+          if (!jam && resume?.userId === user?.id && resume.trackId === e.currentTarget.dataset.trackId && resume.position > 0) {
+            e.currentTarget.currentTime = Math.min(resume.position, Math.max(0, e.currentTarget.duration - 1));
+            setPosition(e.currentTarget.currentTime);
+          }
+        }}
+        onError={() => { if (track) note(`Could not load “${track.title}”. Try another track or check your connection.`); }}
         onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
+        onPause={(e) => {
+          setPlaying(false);
+          if (!jam && user && e.currentTarget.currentTime > 0) {
+            localStorage.setItem(DB, JSON.stringify({ ...readDB(), resume: { userId: user.id, trackId: e.currentTarget.dataset.trackId, position: e.currentTarget.currentTime } }));
+          }
+        }}
         onEnded={() => {
           if (jam && host) control("next");
-          else if (!jam && preferences.autoplayNext) skip(1);
+          else if (!jam && repeatMode === "one") {
+            audio.current.currentTime = 0;
+            audio.current.play().catch(() => {});
+          } else if (!jam && (repeatMode === "all" || preferences.autoplayNext)) skip(1, true);
         }}
       />
     </div>
@@ -1695,7 +1866,7 @@ function SettingsPage({ preferences, onChange, onReset }) {
           <div className="settings-heading">
             <span className="eyebrow">PLAYBACK</span>
             <h2>Your player</h2>
-            <p>Control what happens when a track finishes.</p>
+            <p>Control what happens when a track finishes. Keyboard: Space plays or pauses, N skips ahead, and the arrow keys seek.</p>
           </div>
           <ToggleSetting
             title="Autoplay next track"
@@ -1793,6 +1964,8 @@ function TrackTable({
   onDelete,
   onAddList,
   lists,
+  onQueue,
+  onEdit,
   emptyTitle = "Nothing in the library yet",
   emptyText = "An administrator can upload MP3 tracks from Admin studio.",
 }) {
@@ -1854,10 +2027,25 @@ function TrackTable({
                 ↗
               </button>
             )}
+            {onQueue && !inJam && (
+              <button className="queue-add" title="Add to playback queue" aria-label={`Add ${t.title} to queue`} onClick={() => onQueue(t)}>
+                ＋
+              </button>
+            )}
+            {onQueue && !inJam && (
+              <button className="play-next" title="Play next" aria-label={`Play ${t.title} next`} onClick={() => onQueue(t, true)}>
+                ⇧
+              </button>
+            )}
             <button className="row-play" onClick={() => onPlay(t)} title="Play">
               ▶
             </button>
-            {admin && (
+            {admin && !t.isSample && onEdit && (
+              <button className="edit-track" title={`Edit ${t.title}`} aria-label={`Edit ${t.title}`} onClick={() => onEdit(t)}>
+                ✎
+              </button>
+            )}
+            {admin && !t.isSample && (
               <button
                 className="remove"
                 onClick={() => onDelete(t)}
@@ -1869,6 +2057,14 @@ function TrackTable({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+function CatalogSkeleton() {
+  return (
+    <div className="catalog-skeleton" role="status" aria-label="Loading your music library">
+      <span>Loading your collection…</span>
+      {[0, 1, 2].map((row) => <i key={row} />)}
     </div>
   );
 }
@@ -2271,14 +2467,16 @@ function UploadModal({ busy, hosted, close, submit, submitFolder }) {
     </div>
   );
 }
-function Admin({ users, tracks, upload, removeTrack, removeUser, backendAvailable }) {
+function Admin({ users, tracks, upload, removeTrack, editTrack, removeUser, backendAvailable, hostedAuth }) {
+  const [trackSearch, setTrackSearch] = useState("");
+  const visibleTracks = tracks.filter((track) => `${track.title} ${track.artist} ${track.genre}`.toLowerCase().includes(trackSearch.toLowerCase()));
   const plays = tracks.reduce((n, t) => n + (t.plays || 0), 0);
   return (
     <>
       <Intro
         label="CATALOG & COMMUNITY"
         title="Admin studio"
-        text="Manage the shared music library and demo accounts."
+        text="Manage the music catalog and listener accounts."
       />
       <div className="stats">
         {[
@@ -2313,18 +2511,23 @@ function Admin({ users, tracks, upload, removeTrack, removeUser, backendAvailabl
           <span className="deployment-note">MP3 uploads need the music server</span>
         )}
       </div>
+      <label className="admin-search">
+        <span>Search catalog</span>
+        <input value={trackSearch} onChange={(event) => setTrackSearch(event.target.value)} placeholder="Track, artist, or genre" />
+      </label>
       <TrackTable
-        tracks={tracks}
+        tracks={visibleTracks}
         likes={[]}
         onPlay={() => {}}
         onLike={() => {}}
         onAdd={() => {}}
         admin
         onDelete={removeTrack}
+        onEdit={editTrack}
       />
       <div className="section-title admin-title">
         <div>
-          <span className="eyebrow">LOCAL ACCOUNTS</span>
+            <span className="eyebrow">ACCOUNT MANAGEMENT</span>
           <h2>
             Listeners <small>{users.length}</small>
           </h2>
@@ -2351,11 +2554,29 @@ function Admin({ users, tracks, upload, removeTrack, removeUser, backendAvailabl
         ))}
       </div>
       <p className="admin-note">
-        This educational demo stores its accounts in this browser’s Local
-        Storage.
+        {hostedAuth ? "Hosted accounts are protected by the Wavehouse sign-in service." : "Local demo accounts are stored in this browser’s Local Storage."}
       </p>
       {!backendAvailable && <p className="admin-note">This Vercel preview includes sample tracks. Catalog management and uploaded MP3 storage require the music server.</p>}
     </>
+  );
+}
+function EditTrackModal({ track, close, save }) {
+  return (
+    <div className="modal-bg" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+      <form className="edit-track-modal" onSubmit={save} role="dialog" aria-modal="true" aria-labelledby="edit-track-heading">
+        <div className="section-title">
+          <div><span className="eyebrow">CATALOG MANAGEMENT</span><h2 id="edit-track-heading">Edit track</h2></div>
+          <button type="button" className="icon-button" aria-label="Close edit track dialog" onClick={close}>×</button>
+        </div>
+        <label>Track title<input name="title" defaultValue={track.title} maxLength="100" required /></label>
+        <label>Artist<input name="artist" defaultValue={track.artist} maxLength="100" required /></label>
+        <label>Genre<input name="genre" defaultValue={track.genre} maxLength="40" required /></label>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-ghost" onClick={close}>Cancel</button>
+          <button className="btn btn-lime">Save track details</button>
+        </div>
+      </form>
+    </div>
   );
 }
 createRoot(document.getElementById("root")).render(<App />);

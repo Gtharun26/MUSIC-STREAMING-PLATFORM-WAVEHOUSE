@@ -43,6 +43,20 @@ Vercel's WebSocket support is in beta. Hobby-plan connections close after five m
 ## Vercel preview
 
 Without Blob, Redis, and the hosted session settings, the deployed preview still plays the bundled demo library but disables hosted MP3 uploads and Jam rooms. It explains which setup is missing instead of presenting broken controls.
+
+## Release checklist
+
+Before sharing a release, walk through these checks in the deployed app:
+
+- Create a listener account, sign in, refresh the page, and sign out.
+- Play a track, seek, adjust volume, use the keyboard controls (Space, N, and the arrow keys), and confirm playback resumes at its saved position when you select the same track again.
+- Add tracks to Up Next, move them, remove them, and confirm shuffle and repeat behave as selected.
+- Like a track, add it to a playlist, refresh, and confirm the library changes remain.
+- Check Recently played and Discover filters/sorting with multiple tracks.
+- Sign in as admin, search the catalog, edit an uploaded track’s details, and remove a track only after checking the confirmation.
+- Create and join a Jam from separate browsers or devices; verify only the host controls shared playback.
+- Repeat the main listening flow at a narrow mobile width and with keyboard-only navigation. Check visible focus, labels, loading messages, and errors.
+- Have a teammate review the change and record ownership and contributions in the project board or pull request before release.
 "# MUSIC-STREAMING-PLATFORM-WAVEHOUSE" 
 "# MUSIC-STREAMING-PLATFORM-WAVEHOUSE" 
 "# MUSIC-STREAMING-PLATFORM-WAVEHOUSE" 

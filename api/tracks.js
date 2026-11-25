@@ -1,4 +1,4 @@
-import { getCatalog, addTrack, addTracks, replaceCatalog, starterTracks, incrementPlays } from "./_lib/catalog.js";
+import { getCatalog, addTrack, addTracks, replaceCatalog, starterTracks, incrementPlays, updateTrack } from "./_lib/catalog.js";
 import { redis, readyRedis } from "./_lib/redis.js";
 import { sessionUser } from "./_lib/auth.js";
 
@@ -39,6 +39,12 @@ export default async function handler(req, res) {
       if (!redis) return res.status(200).json({ plays: 0 });
       const track = await incrementPlays(id);
       return track ? res.status(200).json({ plays: track.plays }) : res.sendStatus(404);
+    }
+    if (req.method === "PUT" && id) {
+      if (sessionUser(req)?.role !== "admin")
+        return res.status(403).json({ error: "Only the hosted administrator can edit tracks." });
+      const updated = await updateTrack(id, req.body || {});
+      return updated ? res.status(200).json(updated) : res.sendStatus(404);
     }
     if (req.method === "DELETE" && id) {
       if (!process.env.BLOB_READ_WRITE_TOKEN)

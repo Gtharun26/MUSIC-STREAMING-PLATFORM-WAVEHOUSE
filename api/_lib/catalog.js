@@ -116,6 +116,22 @@ export async function replaceCatalog(tracks) {
   await withRedisLock(KEY, (db) => db.set(KEY, JSON.stringify(tracks)));
 }
 
+export async function updateTrack(id, input) {
+  return withRedisLock(KEY, async (db) => {
+    const saved = await db.get(KEY);
+    const list = normalizeCatalog(saved ? JSON.parse(saved) : starterTracks);
+    const track = list.find((item) => item.id === id && !item.isSample);
+    if (!track) return null;
+    const title = String(input.title || "").trim();
+    const artist = String(input.artist || "").trim();
+    const genre = String(input.genre || "").trim();
+    if (!title || !artist || !genre) throw new Error("Title, artist, and genre are required.");
+    Object.assign(track, { title: title.slice(0, 100), artist: artist.slice(0, 100), genre: genre.slice(0, 40) });
+    await db.set(KEY, JSON.stringify(list));
+    return track;
+  });
+}
+
 export async function incrementPlays(id) {
   return withRedisLock(KEY, async (db) => {
     const saved = await db.get(KEY);

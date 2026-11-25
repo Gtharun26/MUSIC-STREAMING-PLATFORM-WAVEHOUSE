@@ -211,6 +211,18 @@ app.delete("/api/tracks/:id", (req, res) => {
   io.emit("rooms:changed");
   res.sendStatus(204);
 });
+app.put("/api/tracks/:id", (req, res) => {
+  const track = catalog.find((item) => item.id === req.params.id && !item.isSample);
+  if (!track) return res.sendStatus(404);
+  const title = String(req.body?.title || "").trim();
+  const artist = String(req.body?.artist || "").trim();
+  const genre = String(req.body?.genre || "").trim();
+  if (!title || !artist || !genre)
+    return res.status(400).json({ error: "Title, artist, and genre are required." });
+  Object.assign(track, { title: title.slice(0, 100), artist: artist.slice(0, 100), genre: genre.slice(0, 40) });
+  saveCatalog();
+  res.json(safeTrack(track));
+});
 app.post("/api/tracks/:id/play", (req, res) => {
   const track = catalog.find((item) => item.id === req.params.id);
   if (!track) return res.sendStatus(404);

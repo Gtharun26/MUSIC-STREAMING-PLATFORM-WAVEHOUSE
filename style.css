@@ -1794,12 +1794,24 @@ audio {
     grid-row: 1;
   }
   .track-actions select,
-  .track-actions button:not(.row-play):not(.liked) {
+  .track-actions button:not(.row-play):not(.liked):not(.queue-add):not(.edit-track) {
     display: none;
   }
   .track-actions .row-play {
     width: 25px;
     height: 25px;
+  }
+  .track-actions .queue-add,
+  .track-actions .edit-track {
+    display: inline-flex;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+  }
+  .track-actions .play-next {
+    display: none;
   }
   .track-main {
     gap: 7px;
@@ -3174,4 +3186,167 @@ audio {
   .theme-dark :is(.btn, .nav-item, .player-buttons button, .search-box, .jam-card, .playlist-card) {
     transition: none;
   }
+}
+
+/* Playback, catalog editing, and keyboard focus polish */
+:is(button, input, select, a):focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 3px;
+}
+.player-mode {
+  position: relative;
+  min-width: 22px;
+}
+.player-extra .player-mode.active {
+  color: var(--lime);
+}
+.player-mode sup {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  font-size: 7px;
+}
+.queue-item.queue-current {
+  background: color-mix(in srgb, var(--lime) 8%, transparent);
+  border-radius: 7px;
+  padding-left: 5px;
+}
+.queue-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.queue-actions button {
+  width: 25px;
+  height: 28px;
+  border-radius: 5px;
+}
+.queue-actions button:hover:not(:disabled) {
+  background: #ffffff12;
+  color: var(--lime);
+}
+.queue-clear {
+  margin-top: 9px;
+  padding: 8px 0 2px;
+}
+.catalog-skeleton {
+  display: grid;
+  gap: 9px;
+  padding: 12px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.catalog-skeleton i {
+  height: 58px;
+  border-radius: 8px;
+  background: linear-gradient(100deg, var(--panel) 20%, var(--panel2) 45%, var(--panel) 70%);
+  background-size: 220% 100%;
+  animation: catalog-skeleton-pulse 1.6s ease-in-out infinite;
+}
+@keyframes catalog-skeleton-pulse {
+  to { background-position-x: -220%; }
+}
+.discover-sort,
+.admin-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.discover-sort select,
+.admin-search input {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 10px;
+  background: var(--panel);
+  color: inherit;
+}
+.admin-search input {
+  width: min(100%, 360px);
+}
+.edit-track-modal {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 15px;
+  border: 1px solid #3b4740;
+  border-radius: 14px;
+  padding: 22px;
+  background: var(--panel);
+  box-shadow: 0 24px 70px #0009;
+}
+.edit-track-modal .section-title {
+  margin: 0 0 5px;
+}
+.edit-track-modal h2 {
+  margin: 5px 0 0;
+}
+.edit-track-modal label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.edit-track-modal input {
+  width: 100%;
+  min-height: 39px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 10px;
+  background: var(--bg);
+  color: inherit;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 5px;
+}
+.theme-light .edit-track-modal,
+.theme-light .discover-sort select,
+.theme-light .admin-search input {
+  background: #fff;
+  color: #263129;
+}
+@media (max-width: 690px) {
+  .player {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) 19px;
+    padding: 3px 9px 4px;
+    gap: 0 7px;
+  }
+  .player-center {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+  }
+  .player-extra {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    justify-content: flex-end;
+    gap: 13px;
+    height: 18px;
+    font-size: 9px;
+  }
+  .player-extra > small,
+  .player-extra > span,
+  .player-extra input {
+    display: none;
+  }
+  .player-extra button {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+  .queue-drawer {
+    bottom: 164px;
+  }
+  .discover-sort {
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .catalog-skeleton i { animation: none; }
 }
