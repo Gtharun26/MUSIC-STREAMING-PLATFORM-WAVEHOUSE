@@ -306,6 +306,9 @@ function App() {
     if (audio.current) audio.current.volume = volume;
   }, [volume]);
   useEffect(() => {
+    document.querySelector('.main-area')?.scrollTo(0, 0);
+  }, [page]);
+  useEffect(() => {
     const onKeyDown = (event) => {
       const target = event.target;
       if (event.key === "Escape" && editingTrack) { setEditingTrack(null); return; }
@@ -973,16 +976,17 @@ function App() {
         checking={!featuresChecked}
       />
     );
+  const activeTrackId = (track || jamTrack)?.id;
   const nav = [
-    ["library", "▤", "My Library"],
-    ["profile", "♙", "Profile"],
-    ["liked", "♡", "Liked tracks"],
-    ["recent", "◷", "Recently played"],
-    ["discover", "⌕", "Discover"],
-    ["jam", "◉", "Jam rooms"],
-    ["playlists", "▧", "Playlists"],
-    ["settings", "⚙", "Settings"],
-    ...(isAdmin ? [["admin", "◈", "Admin studio"]] : []),
+    ["library", <Icon name="library" />, "My Library"],
+    ["profile", <Icon name="user" />, "Profile"],
+    ["liked", <Icon name="heart" />, "Liked tracks"],
+    ["recent", <Icon name="clock" />, "Recently played"],
+    ["discover", <Icon name="compass" />, "Discover"],
+    ["jam", <Icon name="radio" />, "Jam rooms"],
+    ["playlists", <Icon name="list" />, "Playlists"],
+    ["settings", <Icon name="settings" />, "Settings"],
+    ...(isAdmin ? [["admin", <Icon name="shield" />, "Admin studio"]] : []),
   ];
   return (
     <div
@@ -1020,8 +1024,8 @@ function App() {
             <b>{user.name}</b>
             <small>@{user.username}</small>
           </span>
-          <button className="icon-button" onClick={logout} title="Sign out">
-            ↪
+          <button className="icon-button" onClick={logout} title="Sign out" aria-label="Sign out">
+            <Icon name="logout" />
           </button>
         </div>
       </aside>
@@ -1048,7 +1052,7 @@ function App() {
                           : "YOUR LIBRARY"}
           </div>
           <label className="search-box">
-            <span>⌕</span>
+            <span><Icon name="search" size={14} /></span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -1129,6 +1133,8 @@ function App() {
               </div>
               {catalogLoading ? <CatalogSkeleton /> : <TrackTable
                 tracks={filtered}
+                currentTrackId={activeTrackId}
+                isPlaying={playing}
                 likes={myLikes}
                 onPlay={play}
                 onLike={like}
@@ -1169,6 +1175,8 @@ function App() {
               />
               <TrackTable
                 tracks={tracks.filter((t) => myLikes.includes(t.id))}
+                currentTrackId={activeTrackId}
+                isPlaying={playing}
                 emptyTitle="No liked tracks yet"
                 emptyText="Like a song from your library or Discover to find it here."
                 likes={myLikes}
@@ -1189,6 +1197,8 @@ function App() {
               <Intro label="YOUR LISTENING HISTORY" title="Recently played" text="Pick up again from the tracks you have enjoyed lately." />
               <TrackTable
                 tracks={(recentlyPlayed[user.id] || []).map((entry) => tracks.find((item) => item.id === entry.id)).filter(Boolean)}
+                currentTrackId={activeTrackId}
+                isPlaying={playing}
                 emptyTitle="Your history starts here"
                 emptyText="Play a track and it will appear here for quick replay."
                 likes={myLikes} onPlay={play} onLike={like} onAdd={addJam}
@@ -1204,27 +1214,31 @@ function App() {
                 title="Discover"
                 text="Explore the music in your shared local library."
               />
-              <div className="chips">
-                {genres.map((g) => (
-                  <button
-                    key={g}
-                    className={genre === g ? "chosen" : ""}
-                    onClick={() => setGenre(g)}
-                  >
-                    {g}
-                  </button>
-                ))}
+              <div className="discover-toolbar">
+                <div className="chips">
+                  {genres.map((g) => (
+                    <button
+                      key={g}
+                      className={genre === g ? "chosen" : ""}
+                      onClick={() => setGenre(g)}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+                <label className="discover-sort">
+                  Sort by
+                  <select value={discoverSort} onChange={(event) => setDiscoverSort(event.target.value)}>
+                    <option value="popular">Most played</option>
+                    <option value="recent">Recently added</option>
+                    <option value="title">Title A–Z</option>
+                  </select>
+                </label>
               </div>
-              <label className="discover-sort">
-                Sort by
-                <select value={discoverSort} onChange={(event) => setDiscoverSort(event.target.value)}>
-                  <option value="popular">Most played</option>
-                  <option value="recent">Recently added</option>
-                  <option value="title">Title A–Z</option>
-                </select>
-              </label>
               <TrackTable
                 tracks={discovered}
+                currentTrackId={activeTrackId}
+                isPlaying={playing}
                 emptyTitle="No tracks in this genre yet"
                 emptyText="Choose another genre to explore more of your library."
                 likes={myLikes}
@@ -1287,6 +1301,8 @@ function App() {
                     tracks={tracks.filter((t) =>
                       selected.trackIds.includes(t.id),
                     )}
+                    currentTrackId={activeTrackId}
+                    isPlaying={playing}
                     likes={myLikes}
                     onPlay={play}
                     onLike={like}
@@ -1373,7 +1389,7 @@ function App() {
         <div className="player-center">
           <div className="player-buttons">
             <button aria-label="Previous track" title="Previous track" onClick={() => skip(-1)} disabled={jam && !host}>
-              |◀
+              <Icon name="prev" size={14} />
             </button>
             <button
               className="play-toggle"
@@ -1382,10 +1398,10 @@ function App() {
               onClick={toggle}
               disabled={jam && !host}
             >
-              {playing ? "Ⅱ" : "▶"}
+              <Icon name={playing ? "pause" : "play"} size={13} />
             </button>
             <button aria-label="Next track" title="Next track · N" onClick={() => skip(1)} disabled={jam && !host}>
-              ▶|
+              <Icon name="next" size={14} />
             </button>
           </div>
           <div className="seek">
@@ -1418,10 +1434,10 @@ function App() {
               });
               return !enabled;
             });
-          }}>⤨</button>}
-          {!jam && <button className={repeatMode !== "off" ? "player-mode active" : "player-mode"} aria-label={`Repeat ${repeatMode}`} title="Repeat mode" onClick={() => setRepeatMode((mode) => mode === "off" ? "all" : mode === "all" ? "one" : "off")}>↻{repeatMode === "one" && <sup>1</sup>}</button>}
-          <button aria-label="Toggle playback queue" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷ Queue</button>
-          <span>◖</span>
+          }}><Icon name="shuffle" size={14} /></button>}
+          {!jam && <button className={repeatMode !== "off" ? "player-mode active" : "player-mode"} aria-label={`Repeat ${repeatMode}`} title="Repeat mode" onClick={() => setRepeatMode((mode) => mode === "off" ? "all" : mode === "all" ? "one" : "off")}><Icon name="repeat" size={14} />{repeatMode === "one" && <sup>1</sup>}</button>}
+          <button aria-label="Toggle playback queue" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}><Icon name="queue" size={14} /> Queue</button>
+          <span aria-hidden="true"><Icon name="volume" size={14} /></span>
           <input
             type="range"
             aria-label="Volume"
@@ -1511,6 +1527,61 @@ function App() {
       />
     </div>
   );
+}
+function Icon({ name, size = 15 }) {
+  const props = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": "true",
+  };
+  switch (name) {
+    case "library":
+      return <svg {...props}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>;
+    case "user":
+      return <svg {...props}><circle cx="12" cy="8" r="4" /><path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6" /></svg>;
+    case "heart":
+      return <svg {...props}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" /></svg>;
+    case "clock":
+      return <svg {...props}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></svg>;
+    case "compass":
+      return <svg {...props}><circle cx="12" cy="12" r="9" /><polygon points="16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9 16.2 7.8" /></svg>;
+    case "radio":
+      return <svg {...props}><circle cx="12" cy="12" r="2" /><path d="M16.2 7.8a6 6 0 0 1 0 8.4" /><path d="M7.8 16.2a6 6 0 0 1 0-8.4" /><path d="M19.1 4.9a10 10 0 0 1 0 14.2" /><path d="M4.9 19.1a10 10 0 0 1 0-14.2" /></svg>;
+    case "list":
+      return <svg {...props}><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><circle cx="4" cy="6" r="1" /><circle cx="4" cy="12" r="1" /><circle cx="4" cy="18" r="1" /></svg>;
+    case "settings":
+      return <svg {...props}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.77 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
+    case "shield":
+      return <svg {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>;
+    case "logout":
+      return <svg {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
+    case "search":
+      return <svg {...props}><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+    case "prev":
+      return <svg {...props}><polygon points="19 20 9 12 19 4 19 20" fill="currentColor" /><line x1="5" y1="19" x2="5" y2="5" /></svg>;
+    case "next":
+      return <svg {...props}><polygon points="5 4 15 12 5 20 5 4" fill="currentColor" /><line x1="19" y1="5" x2="19" y2="19" /></svg>;
+    case "play":
+      return <svg {...props}><polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none" /></svg>;
+    case "pause":
+      return <svg {...props}><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none" /><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none" /></svg>;
+    case "shuffle":
+      return <svg {...props}><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>;
+    case "repeat":
+      return <svg {...props}><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>;
+    case "queue":
+      return <svg {...props}><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="15" y2="18" /><polygon points="19 12 22 15 19 18 19 12" fill="currentColor" stroke="none" /></svg>;
+    case "volume":
+      return <svg {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M19 5a10 10 0 0 1 0 14" /></svg>;
+    default:
+      return null;
+  }
 }
 function Brand({ onClick }) {
   return (
@@ -1966,6 +2037,8 @@ function TrackTable({
   lists,
   onQueue,
   onEdit,
+  currentTrackId,
+  isPlaying,
   emptyTitle = "Nothing in the library yet",
   emptyText = "An administrator can upload MP3 tracks from Admin studio.",
 }) {
@@ -1985,9 +2058,17 @@ function TrackTable({
         <span>PLAYS</span>
         <span>ACTIONS</span>
       </div>
-      {tracks.map((t, i) => (
-        <div className="track-row" key={t.id}>
-          <span className="track-number">{String(i + 1).padStart(2, "0")}</span>
+      {tracks.map((t, i) => {
+        const active = currentTrackId === t.id;
+        return (
+        <div className={`track-row${active ? " is-playing" : ""}`} key={t.id}>
+          <span className="track-number">
+            {active && isPlaying ? (
+              <span className="now-bars" aria-label="Playing"><i /><i /><i /></span>
+            ) : (
+              String(i + 1).padStart(2, "0")
+            )}
+          </span>
           <button className="track-main" onClick={() => onPlay(t)}>
             <Cover track={t} />
             <span>
@@ -2056,7 +2137,8 @@ function TrackTable({
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -1,35 +1,3 @@
-body {
-  margin: 0;
-  background: #101313;
-  color: #f3f3e8;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
-}
-* {
-  box-sizing: border-box;
-}
-button,
-input {
-  font: inherit;
-}
-button {
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.42;
-  cursor: not-allowed;
-}
-#root {
-  min-height: 100vh;
-}
-audio {
-  display: none;
-}
 :root {
   font-family:
     Inter,
@@ -63,8 +31,21 @@ body {
   font-size: 14px;
 }
 button,
-input {
+input,
+textarea {
   font: inherit;
+}
+select {
+  font: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 38px;
+  line-height: 1.2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2398a39c' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding: 0 32px 0 11px;
+  cursor: pointer;
 }
 button {
   color: inherit;
@@ -329,6 +310,13 @@ audio {
   padding: 34px 4.2% 55px;
   margin: auto;
 }
+.page-content > * {
+  animation: pageIn 0.28s ease-out;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .welcome-panel {
   min-height: 305px;
   border-radius: 15px;
@@ -534,6 +522,9 @@ audio {
   font-weight: 800;
   letter-spacing: 1px;
 }
+.track-head span:last-child {
+  text-align: right;
+}
 .track-row {
   min-height: 61px;
   border-top: 1px solid #242b29;
@@ -590,6 +581,21 @@ audio {
   border-radius: 6px;
   flex: 0 0 39px;
   background: #283430;
+  position: relative;
+}
+.track-main .cover {
+  overflow: hidden;
+}
+.track-main:hover .cover::after {
+  content: "▶";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  border-radius: 6px;
+  font-size: 13px;
 }
 .empty-cover {
   display: grid;
@@ -641,9 +647,11 @@ audio {
 }
 .track-actions select {
   width: 29px;
+  height: 28px;
   padding: 0;
   color: #a7b0a9;
   appearance: none;
+  background-image: none;
   text-align: center;
 }
 .track-actions select option {
@@ -847,6 +855,7 @@ audio {
   border-top: 1px solid #2c3530;
   margin-top: 28px;
   padding-top: 15px;
+  max-width: 920px;
   display: flex;
   gap: 27px;
   font-size: 9px;
@@ -1192,6 +1201,7 @@ audio {
   border: 0;
   color: #b3bdb5;
   font-size: 10px;
+  white-space: nowrap;
 }
 .player-extra input {
   max-width: 85px;
@@ -1646,11 +1656,13 @@ audio {
     grid-template-columns: minmax(0, 1fr) 210px;
   }
   .player {
-    grid-template-columns: minmax(140px, 1fr) minmax(250px, 1.4fr) 130px;
+    grid-template-columns: minmax(120px, 1fr) minmax(160px, 1.2fr) auto;
     padding: 0 13px;
+    gap: 10px;
   }
   .player-extra > small,
-  .player-extra > span {
+  .player-extra > span,
+  .player-extra > input {
     display: none;
   }
   .track-head,
@@ -1660,6 +1672,9 @@ audio {
   .track-head span:nth-child(4),
   .plays {
     display: none;
+  }
+  .track-head span:last-child {
+    text-align: right;
   }
   .track-actions {
     grid-column: 4;
@@ -2066,7 +2081,7 @@ audio {
 .profile-layout {
   display: grid;
   grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.6fr);
-  align-items: start;
+  align-items: stretch;
   gap: 22px;
   padding-bottom: 28px;
 }
@@ -2203,6 +2218,14 @@ audio {
   font-size: 12px;
   font-weight: 400;
 }
+.profile-fields select {
+  height: 39px;
+  padding: 0 32px 0 11px;
+  background-color: #111715;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2398a39c' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
 .profile-fields input:focus,
 .profile-fields textarea:focus,
 .profile-fields select:focus {
@@ -2215,6 +2238,7 @@ audio {
 .profile-fields textarea {
   min-height: 82px;
   resize: vertical;
+  font-family: inherit;
 }
 .profile-fields label > small {
   color: #87938b;
@@ -3261,7 +3285,7 @@ audio {
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 0 10px;
-  background: var(--panel);
+  background-color: var(--panel);
   color: inherit;
 }
 .admin-search input {
@@ -3307,7 +3331,7 @@ audio {
 .theme-light .edit-track-modal,
 .theme-light .discover-sort select,
 .theme-light .admin-search input {
-  background: #fff;
+  background-color: #fff;
   color: #263129;
 }
 @media (max-width: 690px) {
@@ -3348,5 +3372,74 @@ audio {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .catalog-skeleton i { animation: none; }
+  .catalog-skeleton i,
+  .now-bars i { animation: none; }
+}
+
+/* Visual polish: SVG icon alignment, discover toolbar, now-playing indicator */
+.nav-item i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.search-box > span {
+  display: inline-flex;
+  align-items: center;
+}
+.player-buttons button,
+.player-extra button,
+.player-extra > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.discover-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 0 0 20px;
+}
+.discover-toolbar .chips {
+  margin: 0;
+}
+.discover-toolbar .discover-sort {
+  margin: 0;
+}
+.discover-sort select {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 32px 0 11px;
+  font-size: 11px;
+}
+.track-row.is-playing {
+  background: color-mix(in srgb, var(--lime) 7%, transparent);
+}
+.track-row.is-playing .track-main b {
+  color: var(--lime);
+}
+.track-row.is-playing .track-number {
+  color: var(--lime);
+}
+.now-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.now-bars i {
+  display: block;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--lime);
+  animation: now-eq 0.7s ease-in-out infinite alternate;
+}
+.now-bars i:nth-child(1) { height: 5px; animation-delay: 0s; }
+.now-bars i:nth-child(2) { height: 11px; animation-delay: 0.2s; }
+.now-bars i:nth-child(3) { height: 7px; animation-delay: 0.4s; }
+@keyframes now-eq {
+  from { transform: scaleY(0.4); }
+  to { transform: scaleY(1); }
 }
